@@ -1,69 +1,93 @@
-# 🔍 Google Maps Playwright Scraper
+# Google Maps Scraper
 
-Scraping data bisnis dari Google Maps **tanpa API key** menggunakan Playwright (browser automation).
+Script Python sederhana untuk mengumpulkan data tempat atau bisnis dari Google Maps secara otomatis dan menyimpannya langsung ke dalam file Excel/CSV.
 
-## ✨ Fitur
+Cocok untuk riset pasar atau mengumpulkan kontak bisnis (seperti nama tempat, alamat, nomor telepon, rating, dan website) tanpa harus menyalin satu per satu secara manual.
 
-- **Gratis** — tidak perlu API key
-- **Data lengkap** — nama, alamat, telepon, email, rating, review, kategori, jam operasional, website
-- **Stealth mode** — bypass anti-bot detection
-- **Auto scroll** — otomatis scroll untuk load semua hasil
-- **Random delay** — delay acak 2-4 detik agar terlihat natural
-- **Debug mode** — `--visible` flag untuk melihat browser berjalan
+---
 
-## 📦 Install
+## Data yang Didapatkan
+
+File hasil (.csv) yang disimpan akan berisi kolom:
+- Nama tempat
+- Rating (bintang)
+- Perkiraan harga
+- Kategori usaha
+- Alamat lengkap
+- Nomor telepon
+- Email (jika tercantum)
+- Website (jika ada)
+- Link Google Maps
+
+---
+
+## Langkah Instalasi
+
+Pastikan komputer sudah terinstall **Python** (versi 3.8 ke atas).
+
+1. **Buka Terminal / Command Prompt** di folder project ini.
+
+2. **Install library yang dibutuhkan:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Install browser Chromium untuk Playwright:**
+   ```bash
+   playwright install chromium
+   ```
+   *(Langkah ini hanya perlu dilakukan satu kali di awal)*
+
+---
+
+## Cara Menjalankan
+
+Jalankan perintah berikut di terminal:
 
 ```bash
-# 1. Install Python dependencies
-pip install -r requirements.txt
-
-# 2. Install Chromium browser untuk Playwright
-playwright install chromium
+python main.py --type "jenis usaha" --area "kota/daerah"
 ```
 
-## 🚀 Penggunaan
+### Contoh Penggunaan
 
-```bash
-# Contoh dasar
-python gmaps_playwright_scraper.py --type "angkringan" --area "purwokerto"
+- **Mencari cafe di Purwokerto:**
+  ```bash
+  python main.py --type "cafe" --area "purwokerto"
+  ```
 
-# Dengan browser terlihat (untuk debug/monitoring)
-python gmaps_playwright_scraper.py --type "warung makan" --area "semarang" --visible
+- **Mencari toko baju di Semarang sambil memantau browsernya:**
+  ```bash
+  python main.py --type "toko baju" --area "semarang" --visible
+  ```
 
-# Custom folder output
-python gmaps_playwright_scraper.py --type "toko baju" --area "yogyakarta" --output-dir "./hasil"
-```
+- **Menyimpan hasil ke folder tertentu:**
+  ```bash
+  python main.py --type "klinik gigi" --area "surabaya" --output-dir "./hasil"
+  ```
 
-## 📊 Output CSV
+---
 
-File CSV akan berisi kolom-kolom berikut:
+## Penjelasan Perintah
 
-| Kolom | Deskripsi |
-|-------|-----------|
-| `nama` | Nama tempat/bisnis |
-| `alamat` | Alamat lengkap |
-| `nomor_hp` | Nomor telepon |
-| `email` | Email (jarang ada di Google Maps) |
-| `rating` | Rating (1-5) |
-| `total_review` | Jumlah review |
-| `kategori` | Kategori bisnis |
-| `website` | URL website (jika ada) |
-| `jam_operasional` | Jam buka/tutup |
-| `google_maps_url` | Link ke Google Maps |
-| `place_id` | Identifier tempat |
+| Parameter | Keterangan |
+|---|---|
+| `--type` | *(Wajib)* Jenis usaha atau tempat yang ingin dicari (contoh: `"cafe"`, `"laundry"`, `"hotel"`). |
+| `--area` | *(Wajib)* Nama wilayah, kota, atau daerah pencarian (contoh: `"purwokerto"`, `"jakarta selatan"`). |
+| `--visible` | *(Opsional)* Jika ditambahkan, jendela browser akan tampil di layar saat proses scraping berjalan. Jika tidak dipakai, proses berjalan di latar belakang (tanpa membuka jendela baru). |
+| `--output-dir` | *(Opsional)* Folder tempat menyimpan file hasil. Jika tidak diisi, otomatis tersimpan di folder `data`. |
 
-## ⚠️ Catatan Penting
+---
 
-- **Jangan jalankan terlalu sering** — bisa kena block oleh Google
-- **Gunakan `--visible`** jika sering gagal, untuk melihat apakah ada CAPTCHA
-- **Selector bisa berubah** — jika Google mengubah struktur HTML-nya, script mungkin perlu diupdate
-- **Email jarang tersedia** — Google Maps memang jarang menampilkan email bisnis
+## Cara Melihat Hasil
 
-## 🔧 Troubleshooting
+1. Setelah proses selesai, file CSV akan otomatis tersimpan di folder `data/` (atau folder yang Anda tentukan).
+2. Nama file berformat: `[jenis_usaha]_[daerah]_[tanggal_jam].csv`.
+3. File tersebut bisa langsung dibuka menggunakan **Microsoft Excel**, **Google Sheets**, atau text editor biasa.
 
-| Masalah | Solusi |
-|---------|--------|
-| CAPTCHA muncul | Tunggu beberapa menit, jalankan ulang dengan `--visible` |
-| Tidak ada hasil | Coba ubah query, misal "kedai kopi" bukan "coffee shop" |
-| Timeout error | Pastikan koneksi internet stabil |
-| Encoding error | Script sudah otomatis fix encoding untuk Windows |
+---
+
+## Catatan Penggunaan
+
+- Setiap 20 data berhasil diambil, program akan berhenti sejenak dan menanyakan apakah Anda ingin lanjut ke 20 data berikutnya atau menyudahi dan langsung menyimpan hasil.
+- Hindari menjalankan scraping terlalu intensif dalam waktu singkat agar terhindar dari pembatasan akses oleh Google.
+- Jika pencarian tampak tidak menemukan hasil, coba jalankan dengan menambahkan `--visible` untuk melihat apakah ada kendala tampilan atau perlunya penyesuaian kata kunci pencarian.

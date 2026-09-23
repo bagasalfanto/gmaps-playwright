@@ -13,7 +13,6 @@ if sys.stdout.encoding != "utf-8":
 if sys.stderr.encoding != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
-
 SEARCH_URL = "https://www.google.com/maps/search/{query}"
 SCROLL_PAUSE = 2.0
 DETAIL_PAUSE_MIN = 2.0
@@ -33,7 +32,6 @@ CSV_FIELDNAMES = [
     "google_maps_url",
 ]
 
-
 async def apply_stealth(page):
     try:
         from playwright_stealth import Stealth
@@ -43,9 +41,8 @@ async def apply_stealth(page):
             from playwright_stealth import stealth_async
             await stealth_async(page)
         except ImportError:
-            print("  ⚠️  playwright-stealth tidak terinstall, lanjut tanpa stealth mode")
-            print("     Install dengan: pip install playwright-stealth")
-
+            print("  [Peringatan] playwright-stealth tidak terinstall, lanjut tanpa stealth mode")
+            print("  Install dengan: pip install playwright-stealth")
 
 async def handle_consent(page):
     await asyncio.sleep(2)
@@ -66,21 +63,20 @@ async def handle_consent(page):
     for sel in selectors:
         btn = page.locator(sel).first
         if await btn.count() > 0:
-            print(f"  🍪 Consent popup ditemukan, mengklik: {sel}")
+            print(f"  Consent popup ditemukan, mengklik: {sel}")
             await btn.click()
             await asyncio.sleep(2)
             return True
-    print("  ℹ️  Tidak ada consent popup")
+    print("  Tidak ada consent popup")
     return False
-
 
 async def scroll_results(page):
     try:
         await page.wait_for_selector('div[role="feed"]', state="visible", timeout=15000)
     except Exception:
-        print("  ⚠️  Tidak menemukan panel hasil. Mungkin query tidak menghasilkan apa-apa.")
+        print("  Tidak menemukan panel hasil. Kemungkinan query tidak menghasilkan data.")
         await page.screenshot(path="debug_error.png")
-        print("  📸  Screenshot disimpan sebagai 'debug_error.png'.")
+        print("  Screenshot disimpan sebagai 'debug_error.png'.")
         return []
 
     feed = page.locator('div[role="feed"]')
@@ -115,12 +111,10 @@ async def scroll_results(page):
             places.append({"url": href, "name": aria or f"Tempat #{i+1}"})
     return places
 
-
 async def _get_text(locator) -> str:
     if await locator.count() > 0:
         return (await locator.inner_text()).strip()
     return ""
-
 
 async def _get_label(locator, prefix_pattern: str) -> str:
     if await locator.count() > 0:
@@ -129,7 +123,6 @@ async def _get_label(locator, prefix_pattern: str) -> str:
             return re.sub(prefix_pattern, "", label).strip()
         return (await locator.inner_text()).strip()
     return ""
-
 
 async def extract_place_details(page):
     data = {field: "" for field in CSV_FIELDNAMES}
@@ -152,7 +145,6 @@ async def extract_place_details(page):
 
     price_el = page.locator('span[aria-label*="Harga:" i], span:has-text("Rp"), span:has-text("· $")').first
     if await price_el.count() > 0:
-        # ponytail: extract numbers, convert to "k", join with "-"
         clean_txt = re.sub(r'[.,]', '', await price_el.inner_text())
         nums = [str(int(n)//1000 if int(n)>=1000 else int(n)) for n in re.findall(r'\d+', clean_txt)]
         if nums:
@@ -195,7 +187,6 @@ async def extract_place_details(page):
     data["google_maps_url"] = page.url
     return data
 
-
 def export_csv(leads, business_type, area, output_dir="."):
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -208,17 +199,16 @@ def export_csv(leads, business_type, area, output_dir="."):
         writer.writerows(leads)
     return filepath
 
-
 async def scrape(business_type, area, headless=True, output_dir="."):
     query = f"{business_type} di {area}"
     search_url = SEARCH_URL.format(query=query.replace(" ", "+"))
     sep = "=" * 60
 
-    print(f"\n{sep}\n🔍 Google Maps Playwright Scraper\n{sep}")
+    print(f"\n{sep}\nGoogle Maps Scraper\n{sep}")
     print(f"  Jenis usaha : {business_type}")
     print(f"  Wilayah     : {area}")
     print(f"  Query       : {query}")
-    print(f"  Mode        : {'Visible (debug)' if not headless else 'Headless'}")
+    print(f"  Mode        : {'Visible (browser tampil)' if not headless else 'Headless (di latar belakang)'}")
     print(f"{sep}\n")
 
     async with async_playwright() as p:
@@ -239,36 +229,36 @@ async def scrape(business_type, area, headless=True, output_dir="."):
         page = await context.new_page()
         await apply_stealth(page)
 
-        print("🌐 Membuka Google Maps...")
+        print("Membuka Google Maps...")
         try:
             await page.goto(search_url, wait_until="domcontentloaded", timeout=45000)
             await page.wait_for_load_state("networkidle", timeout=30000)
         except Exception:
-            print("  ⏳ networkidle timeout, lanjut...")
+            print("  networkidle timeout, melanjutkan proses...")
 
         await asyncio.sleep(3)
-        print(f"  📍 URL saat ini: {page.url[:80]}")
+        print(f"  URL: {page.url[:80]}")
 
         await handle_consent(page)
         await asyncio.sleep(3)
 
-        print("📜 Scroll untuk memuat semua hasil...")
+        print("Scroll untuk memuat semua hasil...")
         places_data = await scroll_results(page)
         total_results = len(places_data)
 
         if total_results == 0:
-            print("\n😕 Tidak ditemukan tempat untuk query ini.")
+            print("\nTidak ditemukan tempat untuk pencarian ini.")
             await browser.close()
             return
 
-        print(f"\n✅ Total ditemukan: {total_results} tempat\n")
-        print("📋 Mengambil detail setiap tempat...\n")
+        print(f"\nTotal ditemukan: {total_results} tempat\n")
+        print("Mengambil detail setiap tempat...\n")
 
         leads = []
         errors = 0
 
         for i, place in enumerate(places_data):
-            print(f"  📋 [{i+1}/{total_results}] {place['name'][:40]}...")
+            print(f"  [{i+1}/{total_results}] {place['name'][:40]}...")
             try:
                 await page.goto(place["url"], wait_until="domcontentloaded", timeout=30000)
                 await asyncio.sleep(1.5)
@@ -280,61 +270,62 @@ async def scrape(business_type, area, headless=True, output_dir="."):
                 nama = details.get("nama_tempat", "N/A")
                 hp = details.get("nomor_telepon", "") or "-"
                 rating = details.get("rating", "") or "-"
-                web = "🌐" if details.get("situs_web") else "  "
-                print(f"     ✅ {nama[:30]}... | 📞 {hp} | ⭐ {rating} | {web}")
+                web = "[Web]" if details.get("situs_web") else ""
+                info_line = f"     {nama[:30]} | HP: {hp} | Rating: {rating}"
+                if web:
+                    info_line += f" | {web}"
+                print(info_line)
             except Exception as e:
-                print(f"     ⚠️  Error: {e}")
+                print(f"     Error: {e}")
                 errors += 1
 
             await asyncio.sleep(random.uniform(DETAIL_PAUSE_MIN, DETAIL_PAUSE_MAX))
 
             if (i + 1) % 20 == 0 and (i + 1) < total_results:
-                print(f"\n⏸️  [PAUSE] Sudah {i + 1} detail tempat berhasil diekstrak.")
+                print(f"\n[Pause] Sudah {i + 1} detail tempat diambil.")
                 lanjut = await asyncio.to_thread(
-                    input, "❓ Lanjut ambil 20 data berikutnya? (y/n) [default: y]: "
+                    input, "Lanjut ambil 20 data berikutnya? (y/n) [default: y]: "
                 )
                 if lanjut.strip().lower() == "n":
-                    print("🛑 Proses dihentikan oleh user. Menyimpan data yang sudah ada...\n")
+                    print("Proses dihentikan oleh pengguna. Menyimpan data yang sudah terkumpul...\n")
                     break
-                print("▶️  Melanjutkan...\n")
+                print("Melanjutkan proses...\n")
 
         await browser.close()
 
     if leads:
         filepath = export_csv(leads, business_type, area, output_dir)
-        print(f"\n{sep}\n🎉 SELESAI!\n{sep}")
+        print(f"\n{sep}\nSELESAI\n{sep}")
         print(f"  Total tempat ditemukan : {total_results}")
         print(f"  Berhasil diambil       : {len(leads)}")
-        print(f"  Error/skip             : {errors}")
+        print(f"  Error / dilewati       : {errors}")
         print(f"  File disimpan ke       : {filepath}")
         print(f"{sep}\n")
     else:
-        print(f"\n😕 Tidak ada data yang berhasil diambil ({errors} error).")
-
+        print(f"\nTidak ada data yang berhasil diambil ({errors} error).")
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🔍 Google Maps Playwright Scraper — Scraping data bisnis dari Google Maps tanpa API key",
+        description="Google Maps Scraper - Ambil data bisnis dari Google Maps tanpa API key",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Contoh penggunaan:
-  python gmaps_playwright_scraper.py --type "angkringan" --area "purwokerto"
-  python gmaps_playwright_scraper.py --type "toko baju" --area "semarang" --visible
-  python gmaps_playwright_scraper.py --type "warung makan" --area "yogyakarta" --output-dir "./hasil"
+  python main.py --type "angkringan" --area "purwokerto"
+  python main.py --type "toko baju" --area "semarang" --visible
+  python main.py --type "warung makan" --area "yogyakarta" --output-dir "./hasil"
 
-Sebelum menjalankan, pastikan sudah install:
+Persiapan sebelum menjalankan:
   pip install -r requirements.txt
   playwright install chromium
         """,
     )
     parser.add_argument("--type", required=True, help='Jenis usaha (misal: "angkringan", "toko baju")')
     parser.add_argument("--area", required=True, help='Wilayah pencarian (misal: "purwokerto", "semarang")')
-    parser.add_argument("--visible", action="store_true", help="Tampilkan browser untuk debug")
-    parser.add_argument("--output-dir", default="data", help="Direktori output CSV (default: data)")
+    parser.add_argument("--visible", action="store_true", help="Tampilkan browser saat proses berjalan")
+    parser.add_argument("--output-dir", default="data", help="Folder output CSV (default: data)")
     args = parser.parse_args()
 
     asyncio.run(scrape(args.type, args.area, headless=not args.visible, output_dir=args.output_dir))
-
 
 if __name__ == "__main__":
     main()
