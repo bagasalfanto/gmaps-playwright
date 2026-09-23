@@ -1,0 +1,37 @@
+# Python cache & environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment files
+.env
+.env.*
+
+# Scraped data & output files
+*.csv
+*.xlsx
+*.xls
+output/
+hasil/
+
+# Media & debug files
+*.png
+*.jpg
+*.jpeg
+*.log
+debug_*
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Script analisis / scratch
+analyze.py
